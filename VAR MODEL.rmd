@@ -1,0 +1,902 @@
+---
+title: "MSCIRUS"
+output: 
+  html_document:
+    theme: flatly
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                  message = FALSE,
+                Warning = FALSE)
+
+```
+
+# MSCIRUS Семинар 7-8
+
+Результирующая переменная - MSCIRUS
+
+Факторы (зависимые переменные ) - Crude , Gold , RUSGLB28TR
+
+## Загружаем библиотеки и данные
+
+### Установка пакетов
+
+```{r eval=FALSE, include=FALSE}
+install.packages("forecast")
+install.packages("lmtest")
+install.packages("tseries")
+install.packages("vars")
+install.packages("urca")
+install.packages("TSA")
+install.packages("Matrix")
+install.packages("matlib")
+install.packages("portes")
+library("portes")
+```
+
+### Включение пакетов
+
+```{r}
+library("forecast")
+library("lmtest")
+library("tseries")
+library("vars")
+library("urca")
+library("TSA")
+library("Matrix")
+library("matlib")
+
+```
+
+### Загрузка данных
+
+```{r}
+data <-read.csv("C:/Users/User/Desktop/New folder (4)/MSCIRUS_2020.txt", sep='\t', dec=',')
+```
+
+## Проверка на стационарность
+
+### MSCIRUS
+
+```{r}
+Pacf(data$MSCIRUS)
+
+ur.df(data$MSCIRUS, type="drift", lags = 1, 
+      selectlags = "Fixed")
+```
+
+### Gold
+
+#### График
+
+```{r}
+plot(data$Gold)
+```
+
+#### PACF
+
+```{r}
+Pacf(data$Gold)
+```
+
+Видим 1 значимый лаг
+
+#### Test regression drift
+
+```{r}
+a<-ur.df(data$Gold, type="drift", lags = 1, 
+      selectlags = "Fixed")
+summary(a)
+```
+
+p-value = 0.01501
+
+### Crude
+
+#### График
+
+```{r}
+plot(data$Crude)
+```
+
+#### PACF
+
+```{r}
+Pacf(data$Crude)
+```
+
+Видим 1 значимый лаг
+
+#### Test regression drift
+
+```{r}
+a<-ur.df(data$Crude, type="drift", lags = 1, 
+      selectlags = "Fixed")
+summary(a)
+```
+
+p-value = 0.001054
+
+### RUSGLB28TR
+
+#### График
+
+```{r}
+plot(data$RUSGLB28TR)
+```
+
+#### PACF
+
+```{r}
+Pacf(data$RUSGLB28TR)
+```
+
+Видим 1 значимый лаг
+
+#### Test regression drift
+
+```{r}
+a<-ur.df(data$RUSGLB28TR, type="drift", lags = 1, 
+      selectlags = "Fixed")
+summary(a)
+```
+
+p-value =
+
+## Разности
+
+### Расчет первых разностей
+
+```{r}
+d1RUSGLB28TR<-diff(data$RUSGLB28TR, differences=1)
+d1Gold<-diff(data$Gold, differences=1)
+d1Crude<-diff(data$Crude, differences=1)
+d1MSCIRUS<-diff(data$MSCIRUS, differences=1)
+```
+
+### Проверка на стационарность (разности)
+
+#### MSCIRUS
+
+```{r}
+Pacf(d1MSCIRUS)
+
+ur.df(d1MSCIRUS, type="drift", lags = 11, 
+      selectlags = "Fixed")
+```
+
+11 значимых лагов
+
+#### Gold
+
+##### График
+
+```{r}
+plot(d1Gold)
+```
+
+##### PACF
+
+```{r}
+Pacf(d1Gold)
+```
+
+Видим 8 значимый лаг
+
+##### Test regression drift
+
+```{r}
+a<-ur.df(data$Gold, type="drift", lags = 8, 
+      selectlags = "Fixed")
+summary(a)
+```
+
+p-value = 0.04283
+
+#### Crude
+
+##### График
+
+```{r}
+plot(d1Crude)
+```
+
+##### PACF
+
+```{r}
+Pacf(d1Crude)
+```
+
+Видим 8 значимый лаг
+
+##### Test regression drift
+
+```{r}
+a<-ur.df(d1Crude, type="drift", lags = 8, 
+      selectlags = "Fixed")
+summary(a)
+```
+
+p-value = 0.001054
+
+#### RUSGLB28TR
+
+##### График
+
+```{r}
+plot(d1RUSGLB28TR)
+```
+
+##### PACF
+
+```{r}
+Pacf(d1RUSGLB28TR)
+```
+
+Видим 1 значимый лаг или 13
+
+##### Test regression drift
+
+```{r}
+a<-ur.df(d1RUSGLB28TR, type="drift", lags = 13, 
+      selectlags = "Fixed")
+summary(a)
+```
+
+p-value =
+
+## VAR analysis
+
+Цель - факторы влияющие на MSCIRUS
+
+### Анализ кросскорреляции
+
+#### Gold
+
+##### Original
+
+'анализ крос корреляции между результирующей переменной и факторами и причинность по Грэнджеру'
+
+'кросcкорреляция между X и Y. слева на графике X причина, справа на графике Y причина'
+
+```{r}
+
+ccf(d1MSCIRUS, data$Gold, lag.max = 24, type = c("correlation"),
+    plot = TRUE)
+grangertest(data$Gold, d1MSCIRUS, order = 24)
+grangertest(d1MSCIRUS, data$Gold, order = 24)
+
+```
+
+##### d1
+
+```{r}
+ccf(d1MSCIRUS, d1Gold, lag.max = 24, type = c("correlation"),
+    plot = TRUE)
+grangertest(d1Gold, d1MSCIRUS, order = 3)
+grangertest(d1MSCIRUS, d1Gold, order = 13)
+
+```
+
+#### Crude
+
+##### Original
+
+```{r}
+
+ccf(d1MSCIRUS, data$Crude, lag.max = 24, type = c("correlation"),
+    plot = TRUE)
+grangertest(data$Crude, d1MSCIRUS, order = 24)
+grangertest(d1MSCIRUS, data$Crude, order = 24)
+
+```
+
+##### d1
+
+```{r}
+ccf(d1MSCIRUS, d1Crude, lag.max = 24, type = c("correlation"),
+    plot = TRUE)
+grangertest(d1Crude , d1MSCIRUS, order = 1)
+grangertest(d1MSCIRUS, d1Crude, order = 11)
+
+```
+
+#### RUSGLB28TR
+
+##### Original
+
+```{r}
+
+ccf(d1MSCIRUS, data$RUSGLB28TR, lag.max = 24, type = c("correlation"),
+    plot = TRUE)
+grangertest(data$RUSGLB28TR, d1MSCIRUS, order = 24)
+grangertest(d1MSCIRUS, data$RUSGLB28TR, order = 24)
+
+```
+
+##### d1
+
+```{r}
+ccf(d1MSCIRUS, d1RUSGLB28TR, lag.max = 15, type = c("correlation"),
+    plot = TRUE)
+grangertest(d1RUSGLB28TR , d1MSCIRUS, order = 6)
+grangertest(d1MSCIRUS, d1RUSGLB28TR, order = 5)
+
+```
+
+#### Вывод:
+
+Наиболее сильное влияние имеет
+
+### Для двух переменных
+
+```{r}
+df = data.frame(d1MSCIRUS, d1RUSGLB28TR)
+VARselect(df, lag.max = 35, type="const")
+aa<-VARselect(df, lag.max = 35, type="const")
+```
+
+```{r}
+write.csv(aa, "C:/Users/User/Desktop/New folder (4)/test_ii.txt")
+```
+
+```{r}
+var<-VAR(df, p =32, type = "const")
+summary(var)
+coef(var)
+
+Acf(var$varresult$d1MSCIRUS$residuals)
+Acf(var$varresult$d1RUSGLB28TR$residuals)
+ccf(var$varresult$d1MSCIRUS$residuals, var$varresult$d1RUSGLB28TR$residuals)
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(var, lags=1.1*var$p)
+LiMcLeod(var, lags=1.1*var$p)
+```
+
+### 1.REAL Fstat для d1RUSGLB28TR cause MSCIRUS
+
+#### 1.1. оцениваем параметры ARMA модели для d1MSCIRUS
+
+```{r}
+eacf(d1MSCIRUS)
+modelMSCIRUS <- Arima(data$MSCIRUS, c(0,1,1), include.constant=TRUE, method = c("CSS"))  
+summary(modelMSCIRUS)
+Acf(residuals(modelMSCIRUS))
+n<-length(coef(modelMSCIRUS))-1
+
+Box.test(residuals(modelMSCIRUS), lag = 9, type = c("Ljung-Box"), fitdf = n)
+x<-var$p-n+1
+rss<-sum(modelMSCIRUS$residuals[x:length(residuals(modelMSCIRUS))]^2)
+
+```
+
+##### Расчет R2
+
+```{r}
+R2<-1-rss/sum((d1MSCIRUS[x:length(d1MSCIRUS)]-mean(d1MSCIRUS[x:length(d1MSCIRUS)]))^2)
+```
+
+##### Расчет adjR2
+
+```{r}
+adjR2 <-1-(1-R2)*(length(residuals(modelMSCIRUS))-1)/(length(residuals(modelMSCIRUS))-n-1-1)
+R2
+adjR2
+f<-forecast(modelMSCIRUS, h=200)
+plot(f)
+```
+
+#### 1.2.модель без ограничений
+
+```{r}
+n1<-var$varresult$d1MSCIRUS$rank-1
+ess1<-sum(var$varresult$d1MSCIRUS$residuals^2)
+Fstat<-((rss-ess1)/(n1-n))/(ess1/(length(d1MSCIRUS)-2*n1-1))
+Fstat
+```
+
+##### 'F крит 1%'
+
+```{r}
+qf(0.99, df1=n1-n, df2=length(d1MSCIRUS)-2*n1-1)
+```
+
+##### 'p-val'
+
+```{r}
+pf(Fstat, n1-n, length(d1MSCIRUS)-2*n1-1, lower.tail=F)
+
+```
+
+#### 1.3.модель с ограничениями
+
+```{r}
+resvar<-restrict(var, method = c("ser"), thresh = 2)
+summary(resvar)
+coef(resvar)
+
+Acf(resvar$varresult$d1MSCIRUS$residuals)
+?Acf
+Acf(resvar$varresult$d1RUSGLB28TR$residuals)
+ccf(resvar$varresult$d1MSCIRUS$residuals, var$varresult$d1RUSGLB28TR$residuals)
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(resvar, lags=1.5*var$p)
+LiMcLeod(resvar, lags=1.5*var$p)
+```
+
+##### 'Fstat'
+
+```{r}
+
+n1<-resvar$varresult$d1MSCIRUS$rank-1
+if(n1<n+1){n1<-n+1}
+ess1<-sum(resvar$varresult$d1MSCIRUS$residuals^2)
+Fstat<-((rss-ess1)/(n1-n))/(ess1/(length(d1MSCIRUS)-2*n1-1))
+Fstat
+
+
+```
+
+##### 'F крит 10%'
+
+```{r}
+qf(0.99, df1=n1-n, df2=length(d1MSCIRUS)-2*n1-1)
+
+```
+
+##### 'p-val'
+
+```{r}
+pf(Fstat, n1-n, length(d1MSCIRUS)-n-n1-1, lower.tail=F)
+
+```
+
+### Для трех переменных
+
+```{r}
+df = data.frame(d1MSCIRUS, d1RUSGLB28TR, d1Gold)
+VARselect(df, lag.max = 24, type="const")
+var<-VAR(df, p = 19, type = "const")
+summary(var)
+coef(var)
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(var, lags=2*var$p)
+LiMcLeod(var, lags=2*var$p)
+```
+
+### 4.Fstat для d1RUSGLB28TR, d1Crude cause d1MSCIRUS для модели с 3-мя переменными против модели с 2-мя переменными'
+
+### 1.REAL Fstat для RUSGLB28TR, Сrude cause MSCIRUS
+
+#### 1.1. оцениваем параметры ARMA модели для realSP500'
+
+```{r}
+eacf(d1MSCIRUS)
+modelMSCIRUS <- Arima(data$MSCIRUS, c(0,1,1), include.constant=TRUE, method = c("CSS"))  
+summary(modelMSCIRUS)
+Acf(residuals(modelMSCIRUS))
+n<-length(coef(modelMSCIRUS))-1
+Box.test(residuals(modelMSCIRUS), lag = 9, type = c("Ljung-Box"), fitdf = n)
+x<-var$p-n+1
+rss<-sum(modelMSCIRUS$residuals[x:length(residuals(modelMSCIRUS))]^2)
+
+```
+
+##### 'расчет R2'
+
+```{r}
+R2<-1-rss/sum((d1MSCIRUS[x:length(d1MSCIRUS)]-mean(d1MSCIRUS[x:length(d1MSCIRUS)]))^2)
+
+```
+
+##### 'расчет adjR2'
+
+```{r}
+adjR2 <-1-(1-R2)*(length(residuals(modelMSCIRUS))-1)/(length(residuals(modelMSCIRUS))-n-1-1)
+R2
+adjR2
+farma<-forecast(modelMSCIRUS, h=200)
+plot(farma)
+```
+
+#### '1.2.модель без ограничений (в сравнении с ARMA)'
+
+```{r}
+n1<-var$varresult$d1MSCIRUS$rank-1
+ess1<-sum(var$varresult$d1MSCIRUS$residuals^2)
+Fstat<-((rss-ess1)/(n1-n))/(ess1/(length(d1MSCIRUS)-2*n1-1))
+Fstat
+
+```
+
+##### 'F крит 1%'
+
+```{r}
+qf(0.99, df1=n1-n, df2=length(d1MSCIRUS)-2*n1-1)
+```
+
+##### 'p-val'
+
+```{r}
+pf(Fstat, n1-n, length(d1MSCIRUS)-2*n1-1, lower.tail=F)
+
+
+```
+
+#### '1.3.модель с ограничениями (в сравнении с ARMA)'
+
+```{r}
+resvar<-restrict(var, method = c("ser"), thresh = 0.7)
+summary(resvar)
+coef(resvar)
+
+Acf(resvar$varresult$d1MSCIRUS$residuals)
+Acf(resvar$varresult$d1RUSGLB28TR$residuals)
+ccf(resvar$varresult$d1MSCIRUS$residuals, var$varresult$d1RUSGLB28TR$residuals)
+
+
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(resvar, lags=2*var$p)
+LiMcLeod(resvar, lags=2*var$p)
+
+```
+
+##### 'Fstat'
+
+```{r}
+
+n1<-resvar$varresult$d1MSCIRUS$rank-1
+ess1<-sum(resvar$varresult$d1MSCIRUS$residuals^2)
+Fstat<-((rss-ess1)/(n1-n))/(ess1/(length(d1MSCIRUS)-2*n1-1))
+Fstat
+
+```
+
+##### 'F крит 1%'
+
+```{r}
+qf(0.99, df1=n1-n, df2=length(d1MSCIRUS)-2*n1-1)
+
+```
+
+##### 'p-val'
+
+```{r}
+pf(Fstat, n1-n, length(d1MSCIRUS)-n-n1-1, lower.tail=F)
+
+```
+
+### 
+
+#### Модель с 2-мя переменными
+
+```{r}
+
+df = data.frame(d1MSCIRUS, d1RUSGLB28TR)
+var<-VAR(df, p = 19, type = "const")
+resvar<-restrict(var, method = c("ser"), thresh = 0.5)
+
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(resvar, lags=2*var$p)
+LiMcLeod(resvar, lags=2*var$p)
+
+```
+
+```{r}
+n<-resvar$varresult$d1MSCIRUS$rank-1
+x<-16-14+1
+rss<-sum(resvar$varresult$d1MSCIRUS$residuals[x:length(resvar$varresult$d1MSCIRUS$residuals)]^2)
+```
+
+#### 'модель с 3-мя переменными'
+
+```{r}
+df = data.frame(d1MSCIRUS, d1RUSGLB28TR, d1Crude)
+VARselect(df, lag.max = 24, type="const")
+var<-VAR(df, p = 2, type = "const")
+resvar<-restrict(var, method = c("ser"), thresh = 0.7)
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(resvar, lags=2*var$p)
+LiMcLeod(resvar, lags=2*var$p)
+
+```
+
+```{r}
+n1<-resvar$varresult$d1MSCIRUS$rank-1
+ess1<-sum(resvar$varresult$d1MSCIRUS$residuals^2)
+Fstat<-((rss-ess1)/(n1-n))/(ess1/(length(d1MSCIRUS)-2*n1-1))
+Fstat
+```
+
+##### 'F крит 1%'
+
+```{r}
+
+qf(0.99, df1=n1-n, df2=length(d1MSCIRUS)-2*n1-1)
+
+```
+
+##### 'p-val'
+
+```{r}
+pf(Fstat, n1-n, length(d1MSCIRUS)-2*n1-1, lower.tail=F)
+```
+
+#### Вывод какая лучше
+
+#### Прогноз d1RSP500 по VAR модели
+
+```{r}
+ff<-predict(resvar, n.ahead = 200, ci = 0.95)
+plot(ff)
+
+```
+
+#### 'прогноз d1MSCIRUS по VAR модели'
+
+##### 'вычисляем дисперсию ошибки'
+
+```{r}
+c_inf<-pnorm(1, mean = 0, sd = 1, lower.tail = TRUE, log.p = FALSE)-
+  pnorm(-1, mean = 0, sd = 1, lower.tail = TRUE, log.p = FALSE)
+ff<-predict(resvar, n.ahead = 200, ci = c_inf)
+Derr<-(ff$fcst$d1MSCIRUS[,c("upper")]-ff$fcst$d1MSCIRUS[,c("fcst")])^2
+```
+
+##### 'задаем вероятность дов. интервала'
+
+```{r}
+prob<-0.95
+kk<-qnorm(prob, mean = 0, sd = 1, lower.tail = TRUE, log.p = FALSE)
+```
+
+##### 'строим прогноз логарифма'
+
+```{r}
+f<-rep(0,length(Derr))
+MSCIRUS_for<-c(data$MSCIRUS, f)
+MSCIRUS_up<-c(data$MSCIRUS, f)
+MSCIRUS_low<-c(data$MSCIRUS, f)
+T<-length(data$MSCIRUS)
+i<-1
+while(i<length(Derr)+1)
+{
+  MSCIRUS_for[T+i]<-MSCIRUS_for[T+i-1]+ff$fcst$d1MSCIRUS[i,c("fcst")]
+  MSCIRUS_up[T+i]<-MSCIRUS_up[T+i-1]+ff$fcst$d1MSCIRUS[i,c("fcst")]+kk*(Derr[i]/i)^0.5
+  MSCIRUS_low[T+i]<-MSCIRUS_low[T+i-1]+ff$fcst$d1MSCIRUS[i,c("fcst")]-kk*(Derr[i]/i)^0.5
+  i<-i+1
+}
+
+plot(MSCIRUS_up)
+lines(MSCIRUS_for)
+lines(MSCIRUS_low)
+MSCIRUS_forARMA<-c(data$MSCIRUS, farma$mean)
+MSCIRUS_upARMA<-c(data$MSCIRUS, farma$upper[,2])
+MSCIRUS_lowARMA<-c(data$MSCIRUS, farma$lower[,2])
+lines(MSCIRUS_forARMA, col='red')
+lines(MSCIRUS_upARMA, col='red')
+lines(MSCIRUS_lowARMA, col='red')
+```
+
+### Для четырех переменых
+
+'по дата фрейму оцениваем параметры VAR модели 4 переменные'
+
+```{r}
+df = data.frame(d1MSCIRUS, d1RUSGLB28TR, d1Crude , d1Gold)
+VARselect(df, lag.max = 24, type="const")
+var<-VAR(df, p = 19, type = "const")
+summary(var)
+coef(var)
+
+
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(var, lags=2*var$p)
+LiMcLeod(var, lags=2*var$p)
+
+
+```
+
+#### 1.REAL Fstat для RUSGLB28TR, Сrude cause MSCIRUS
+
+#### 1.1. оцениваем параметры ARMA модели для realSP500'
+
+```{r}
+eacf(d1MSCIRUS)
+modelMSCIRUS <- Arima(data$MSCIRUS, c(0,1,1), include.constant=TRUE, method = c("CSS"))  
+summary(modelMSCIRUS)
+Acf(residuals(modelMSCIRUS))
+n<-length(coef(modelMSCIRUS))-1
+Box.test(residuals(modelMSCIRUS), lag = 9, type = c("Ljung-Box"), fitdf = n)
+x<-var$p-n+1
+rss<-sum(modelMSCIRUS$residuals[x:length(residuals(modelMSCIRUS))]^2)
+
+```
+
+##### 'расчет R2'
+
+```{r}
+R2<-1-rss/sum((d1MSCIRUS[x:length(d1MSCIRUS)]-mean(d1MSCIRUS[x:length(d1MSCIRUS)]))^2)
+
+```
+
+##### 'расчет adjR2'
+
+```{r}
+adjR2 <-1-(1-R2)*(length(residuals(modelMSCIRUS))-1)/(length(residuals(modelMSCIRUS))-n-1-1)
+R2
+adjR2
+f<-forecast(modelMSCIRUS, h=200)
+plot(farma)
+```
+
+#### '1.2.модель без ограничений (в сравнении с ARMA)'
+
+```{r}
+n1<-var$varresult$d1MSCIRUS$rank-1
+ess1<-sum(var$varresult$d1MSCIRUS$residuals^2)
+Fstat<-((rss-ess1)/(n1-n))/(ess1/(length(d1MSCIRUS)-2*n1-1))
+Fstat
+
+```
+
+##### 'F крит 1%'
+
+```{r}
+qf(0.99, df1=n1-n, df2=length(d1MSCIRUS)-2*n1-1)
+```
+
+##### 'p-val'
+
+```{r}
+pf(Fstat, n1-n, length(d1MSCIRUS)-2*n1-1, lower.tail=F)
+
+
+```
+
+#### '1.3.модель с ограничениями (в сравнении с ARMA)'
+
+```{r}
+resvar<-restrict(var, method = c("ser"), thresh = 0.7)
+summary(resvar)
+coef(resvar)
+
+Acf(resvar$varresult$d1MSCIRUS$residuals)
+Acf(resvar$varresult$d1RUSGLB28TR$residuals)
+ccf(resvar$varresult$d1MSCIRUS$residuals, var$varresult$d1RUSGLB28TR$residuals)
+
+
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(resvar, lags=2*var$p)
+LiMcLeod(resvar, lags=2*var$p)
+
+```
+
+##### 'Fstat'
+
+```{r}
+
+n1<-resvar$varresult$d1MSCIRUS$rank-1
+ess1<-sum(resvar$varresult$d1MSCIRUS$residuals^2)
+Fstat<-((rss-ess1)/(n1-n))/(ess1/(length(d1MSCIRUS)-2*n1-1))
+Fstat
+
+```
+
+##### 'F крит 1%'
+
+```{r}
+qf(0.99, df1=n1-n, df2=length(d1MSCIRUS)-2*n1-1)
+
+```
+
+##### 'p-val'
+
+```{r}
+pf(Fstat, n1-n, length(d1MSCIRUS)-n-n1-1, lower.tail=F)
+
+```
+
+### 
+
+#### '5.Fstat для PPI, HOUS, d1UNEM cause RSP500 для модели с 4-мя переменными против модели с 3-мя переменными'
+
+##### 'модель с 3-мя переменными'
+
+```{r}
+df = data.frame(d1MSCIRUS, d1RUSGLB28TR, d1Crude)
+var<-VAR(df, p = 19, type = "const")
+resvar<-restrict(var, method = c("ser"), thresh = 0.7)
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(resvar, lags=2*var$p)
+LiMcLeod(resvar, lags=2*var$p)
+
+```
+
+```{r}
+n<-resvar$varresult$d1MSCIRUS$rank-1
+x<-16-14+1
+rss<-sum(resvar$varresult$d1MSCIRUS$residuals[x:length(resvar$varresult$d1MSCIRUS$residuals)]^2)
+
+```
+
+##### 'модель с 4-мя переменными'
+
+```{r}
+df = data.frame(d1MSCIRUS, d1RUSGLB28TR, d1Crude,d1Gold )
+var<-VAR(df, p = 16, type = "const")
+resvar<-restrict(var, method = c("ser"), thresh = 0.4)
+
+```
+
+```{r eval=FALSE, include=FALSE}
+Hosking(resvar, lags=2*var$p)
+LiMcLeod(resvar, lags=2*var$p)
+```
+
+```{r}
+n1<-resvar$varresult$d1MSCIRUS$rank-1
+ess1<-sum(resvar$varresult$d1MSCIRUS$residuals^2)
+Fstat<-((rss-ess1)/(n1-n))/(ess1/(length(d1MSCIRUS)-2*n1-1))
+Fstat
+```
+
+###### 'F крит 10%'
+
+```{r}
+
+qf(0.99, df1=n1-n, df2=length(d1MSCIRUS)-2*n1-1)
+```
+
+###### 'p-val'
+
+```{r}
+pf(Fstat, n1-n, length(d1MSCIRUS)-2*n1-1, lower.tail=F)
+
+
+
+```
+
+#### Вывод
+
+## Impulfunctionse response
+
+```{r}
+s<-irf(resvar, impulse = "d1MSCIRUS", response = c("d1MSCIRUS"), cumulative=TRUE, boot =
+         TRUE)
+plot(s)
+s<-irf(resvar, impulse = "d1MSCIRUS", response = c("d1Crude"), cumulative=TRUE, boot =
+         TRUE)
+plot(s)
+s<-irf(resvar, impulse = "d1MSCIRUS", response = c("d1RUSGLB28TR"), cumulative=TRUE, boot =
+         TRUE)
+plot(s)
+s<-irf(resvar, impulse = "d1MSCIRUS", response = c("d1Gold"), cumulative=TRUE, boot =
+         TRUE)
+plot(s)
+
+'запись IRF в файл'
+as <- c(s$irf$d1RSP500, s$Upper$d1RSP500, s$Lower$d1RSP500)
+write(as, "C:/Users/User/Desktop/New folder (4)/irf.txt")
+
+```
